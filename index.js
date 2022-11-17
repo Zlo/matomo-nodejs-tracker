@@ -17,7 +17,7 @@ const url = require('url');
 
 /**
  * @constructor
- * @param {Number} siteId     Id of the site you want to track
+ * @param {Number} siteId     Id of the site you want to track or false
  * @param {String} trackerUrl URL of your Matomo instance
  * @param {Boolean} [true] noURLValidation Set to true if the `piwik.php` has been renamed
  */
@@ -27,7 +27,7 @@ function MatomoTracker (siteId, trackerUrl, noURLValidation) {
   }
   events.EventEmitter.call(this);
 
-  assert.ok(siteId && (typeof siteId === 'number' || typeof siteId === 'string'), 'Matomo siteId required.');
+  assert.ok(siteId === false || typeof siteId === 'number' || typeof siteId === 'string', 'Matomo default siteId required.');
   assert.ok(trackerUrl && typeof trackerUrl === 'string', 'Matomo tracker URL required, e.g. http://example.com/matomo.php');
   if (!noURLValidation) {
     assert.ok(trackerUrl.endsWith('matomo.php') || trackerUrl.endsWith('piwik.php'), 'A tracker URL must end with "matomo.php" or "piwik.php"');
@@ -62,9 +62,11 @@ MatomoTracker.prototype.track = function track (options) {
 
   // Set mandatory options
   options = options || {};
-  options.idsite = this.siteId;
+  if (undefined === options.idsite)
+    options.idsite = this.siteId;
   options.rec = 1;
 
+  assert.ok(typeof options.idsite === 'number' || typeof options.siteId === 'string', 'Matomo siteId required.');
   assert.ok(options.url, 'URL to be tracked must be specified.');
 
   var requestUrl = this.trackerUrl + '?' + qs.stringify(options);
@@ -90,12 +92,14 @@ MatomoTracker.prototype.trackBulk = function trackBulk (events, callback) {
   var hasErrorListeners = this.listeners('error').length;
 
   assert.ok(events && (events.length > 0), 'Events require at least one.');
-  assert.ok(this.siteId !== undefined && this.siteId !== null, 'siteId must be specified.');
 
   var body = JSON.stringify({
     requests: events.map(query => {
-      query.idsite = this.siteId;
+      if (undefined === query.idsite)
+        query.idsite = this.siteId;
       query.rec = 1;
+
+      assert.ok(typeof query.idsite === 'number' || typeof query.siteId === 'string', 'Matomo siteId required.');
       return '?' + qs.stringify(query);
     })
   });

@@ -81,7 +81,7 @@ describe('#track()', () => {
     httpSpy.should.have.been.calledWith('http://example.com/matomo.php?url=http%3A%2F%2Fmywebsite.com%2F&idsite=1&rec=1');
   });
 
-  it('should accept an parameter object', () => {
+  it('should accept a parameter object', () => {
     httpMock.reply(200);
     matomo.track({ url: 'http://mywebsite.com/' });
     httpSpy.should.have.been.calledWith('http://example.com/matomo.php?url=http%3A%2F%2Fmywebsite.com%2F&idsite=1&rec=1');
@@ -206,5 +206,34 @@ describe('#bulkTrack() - HTTPS support', () => {
     matomo = null;
     nock.restore();
     httpsSpy.restore();
+  });
+});
+
+describe('No default idsite', () => {
+  let httpMock, httpSpy, matomo;
+
+  beforeEach(() => {
+    matomo = new MatomoTracker(false, 'http://example.com/matomo.php');
+
+    httpMock = nock('http://example.com')
+      .filteringPath(() => '/matomo.php')
+      .get('/matomo.php');
+    httpSpy = sinon.spy(http, 'get');
+  });
+
+  afterEach(() => {
+    matomo = null;
+    nock.restore();
+    httpSpy.restore();
+  });
+
+  it('should accept a parameter object', () => {
+    httpMock.reply(200);
+    matomo.track({ idsite: 1, url: 'http://mywebsite.com/' });
+    httpSpy.should.have.been.calledWith('http://example.com/matomo.php?idsite=1&url=http%3A%2F%2Fmywebsite.com%2F&rec=1');
+  });
+
+  it('should throw without idsite', () => {
+    (() => matomo.track({ url: 'http://mywebsite.com/'})).should.throw(/siteId/);
   });
 });
